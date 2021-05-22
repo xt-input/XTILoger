@@ -1,15 +1,11 @@
 //
 //  XTILoger.swift
-//  XTInputKit
-//    参考代码：https://github.com/honghaoz/Loggerithm
-//    (仿写)
+//  XTILoger
 //  Created by xt-input on 2018/1/3.
 //  Copyright © 2018年 Input. All rights reserved.
 //
 
-import UIKit
-
-fileprivate let xtiloger = XTILoger()
+import Foundation
 
 public enum XTILogerLevel: Int {
     public typealias RawValue = Int
@@ -44,6 +40,8 @@ extension XTILogerLevel: Comparable {
 public class XTILoger {
     fileprivate let dateFormatter = DateFormatter()
     fileprivate let dateShortFormatter = DateFormatter()
+    /// 文件夹
+    fileprivate let logDirectory: String
 
     /// 保存到日志文件的等级
     public var saveFileLevel = XTILogerLevel.warning
@@ -73,180 +71,30 @@ public class XTILoger {
 
     private var logLevel: XTILogerLevel! {
         #if DEBUG
-            return debugLogLevel
+            return self.debugLogLevel
         #else
-            return releaseLogLevel
+            return self.releaseLogLevel
         #endif
     }
 
-    internal required init() {
-        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
-        dateShortFormatter.locale = Locale(identifier: "en_US_POSIX")
-        dateShortFormatter.dateFormat = "HH:mm:ss.SSS"
-        debugLogLevel = XTILogerLevel.all
-        releaseLogLevel = XTILogerLevel.warning
+    public required init(_ logDirectory: String = "") {
+        self.dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        self.dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+        self.dateShortFormatter.locale = Locale(identifier: "en_US_POSIX")
+        self.dateShortFormatter.dateFormat = "HH:mm:ss.SSS"
+        self.debugLogLevel = XTILogerLevel.all
+        self.releaseLogLevel = XTILogerLevel.warning
+        self.logDirectory = logDirectory.appending("/").replacingOccurrences(of: "//", with: "/")
     }
+}
 
-    fileprivate func loger(format: String, _ args: [Any?]) -> String {
-        guard let ranges = try? NSRegularExpression(pattern: "%*%", options: []) else {
-            return ""
-        }
-
-        let matches = ranges.matches(in: format, options: [], range: NSRange(format.startIndex..., in: format))
-
-        var value = ""
-        var index = 0
-        if args.isEmpty {
-            return format
-        }
-
-        for i in 0 ..< matches.count {
-            let len = (i < matches.count - 1 ? matches[i + 1].range.location : format.count) - matches[i].range.location
-            let range = Range(NSMakeRange(matches[i].range.location, len), in: format)
-            if let tempRange = range {
-                var tempFormat = "\(format[tempRange])"
-                if !tempFormat.hasPrefix("% ") && index < args.count {
-                    let arg = args[index]
-                    index = index + 1
-                    if arg != nil, let cVarArg = arg as? CVarArg {
-                        tempFormat = String(format: tempFormat, cVarArg)
-                    } else {
-                        tempFormat = String(describing: arg)
-                    }
-                }
-                value = value + tempFormat
-            }
-        }
-        return value
-    }
-
-    @discardableResult public static func info(format: String,
-                                               function: String = #function,
-                                               file: String = #file,
-                                               line: Int = #line,
-                                               _ args: Any?...) -> String {
-        return xtiloger.log(.info, function: function, file: file, line: line, value: xtiloger.loger(format: format, args))
-    }
-
-    @discardableResult public static func info(_ value: Any?,
-                                               function: String = #function,
-                                               file: String = #file,
-                                               line: Int = #line) -> String {
-        return xtiloger.log(.info, function: function, file: file, line: line, value: value)
-    }
-
-    @discardableResult public static func debug(format: String,
-                                                function: String = #function,
-                                                file: String = #file,
-                                                line: Int = #line,
-                                                _ args: Any?...) -> String {
-        return xtiloger.log(.debug, function: function, file: file, line: line, value: xtiloger.loger(format: format, args))
-    }
-
-    @discardableResult public static func debug(_ value: Any?,
-                                                function: String = #function,
-                                                file: String = #file,
-                                                line: Int = #line) -> String {
-        return xtiloger.log(.debug, function: function, file: file, line: line, value: value)
-    }
-
-    @discardableResult public static func warning(format: String,
-                                                  function: String = #function,
-                                                  file: String = #file,
-                                                  line: Int = #line,
-                                                  _ args: Any?...) -> String {
-        return xtiloger.log(.warning, function: function, file: file, line: line, value: xtiloger.loger(format: format, args))
-    }
-
-    @discardableResult public static func warning(_ value: Any?,
-                                                  function: String = #function,
-                                                  file: String = #file,
-                                                  line: Int = #line) -> String {
-        return xtiloger.log(.warning, function: function, file: file, line: line, value: value)
-    }
-
-    @discardableResult public static func error(format: String,
-                                                function: String = #function,
-                                                file: String = #file,
-                                                line: Int = #line,
-                                                _ args: Any?...) -> String {
-        return xtiloger.log(.error, function: function, file: file, line: line, value: xtiloger.loger(format: format, args))
-    }
-
-    @discardableResult public static func error(_ value: Any?,
-                                                function: String = #function,
-                                                file: String = #file,
-                                                line: Int = #line) -> String {
-        return xtiloger.log(.error, function: function, file: file, line: line, value: value)
-    }
-
-    /// 打印日志
-    /// - Parameters:
-    ///   - level: 日志等级
-    ///   - format: 要打印的数据的结构
-    ///   - args: 要打印的数据数组
-    /// - Returns: 打印的内容
-    fileprivate func log(_ level: XTILogerLevel,
-                         function: String,
-                         file: String,
-                         line: Int,
-                         value: Any?) -> String {
-        if logLevel > level {
-            return ""
-        }
-
-        let dateTime = isShowLongTime ? "\(dateFormatter.string(from: Date()))" : "\(dateShortFormatter.string(from: Date()))"
-        var levelString = ""
-        switch level {
-        case .info:
-            levelString = "[INFO\t]"
-        case .debug:
-            levelString = "[DEBUG\t]"
-        case .warning:
-            levelString = "[WARNING]"
-        case .error:
-            levelString = "[ERROR\t]"
-        default:
-            break
-        }
-        levelString = isShowLevel ? levelString : ""
-
-        var fileString = ""
-        if isShowFileName {
-            fileString += "[" + (file as NSString).lastPathComponent
-            if isShowLineNumber {
-                fileString += ":\(line)"
-            }
-            fileString += "]"
-        }
-        if fileString.isEmpty && isShowLineNumber {
-            fileString = "line:\(line)"
-        }
-        var functionString = isShowFunctionName ? function : ""
-
-        let threadId = String(unsafeBitCast(Thread.current, to: Int.self), radix: 16, uppercase: false)
-        let isMain = isShowThread ? Thread.current.isMainThread ? "[Main]" : "[Global]<0x\(threadId)>" : ""
-        let infoString = "\(dateTime) \(levelString) \(fileString) \(isMain) \(functionString)".trimmingCharacters(in: CharacterSet(charactersIn: " "))
-
-        var logString: String
-        if let tempValue = value {
-            logString = infoString + (infoString.isEmpty ? "" : " => ") + String(describing: tempValue)
-        } else {
-            logString = infoString + (infoString.isEmpty ? "" : " => ") + String(describing: value)
-        }
-
-        printToFile(level, log: logString)
-        xt_print(logString)
-        return logString + "\n"
-    }
-
+extension XTILoger {
     /// 通过日志等级获取当前日志文件的路径
     /// - Parameter level: 日志等级
     /// - Returns: 文件路径
-    public static func getCurrentLogFilePath(_ level: XTILogerLevel) -> String {
+    public func getCurrentLogFilePath(_ level: XTILogerLevel) -> String {
         let fileName = xtiloger.returnFileName(level)
-        let logFilePath = getLogDirectory() + fileName
+        let logFilePath = self.getLogDirectory() + fileName
         if !FileManager.default.fileExists(atPath: logFilePath) {
             FileManager.default.createFile(atPath: logFilePath, contents: nil, attributes: nil)
         }
@@ -255,8 +103,8 @@ public class XTILoger {
 
     /// 获取日志文件夹的路径，没有该文件夹就创建
     /// - Returns: 日志文件夹的路径
-    public static func getLogDirectory() -> String {
-        let logDirectoryPath = NSHomeDirectory() + "/Documents/XTILoger/"
+    public func getLogDirectory() -> String {
+        let logDirectoryPath = NSHomeDirectory() + "/Documents/XTILoger/" + self.logDirectory
         if !FileManager.default.fileExists(atPath: logDirectoryPath) {
             try? FileManager.default.createDirectory(atPath: logDirectoryPath, withIntermediateDirectories: true, attributes: nil)
         }
@@ -265,21 +113,21 @@ public class XTILoger {
 
     /// 获取所有日志文件的路径
     /// - Returns: 所有日志文件的路径
-    public static func getLogFilesPath() -> [String] {
+    public func getLogFilesPath() -> [String] {
         var filesPath = [String]()
         do {
-            filesPath = try FileManager.default.contentsOfDirectory(atPath: getLogDirectory())
+            filesPath = try FileManager.default.contentsOfDirectory(atPath: self.getLogDirectory())
         } catch {}
         return filesPath
     }
 
     /// 清理日志文件
     /// - Returns: 操作结果
-    @discardableResult public static func cleanLogFiles() -> Bool {
-        getLogFilesPath().forEach { path in
+    @discardableResult public func cleanLogFiles() -> Bool {
+        self.getLogFilesPath().forEach { path in
             do { try FileManager.default.removeItem(atPath: self.getLogDirectory() + "/" + path) } catch {}
         }
-        return getLogFilesPath().isEmpty
+        return self.getLogFilesPath().isEmpty
     }
 
     fileprivate func xt_print(_ string: String) {
@@ -289,10 +137,10 @@ public class XTILoger {
     }
 
     fileprivate func printToFile(_ level: XTILogerLevel, log string: String) {
-        if logLevel > level {
+        if self.logLevel > level {
             return
         }
-        let logFilePath = XTILoger.getCurrentLogFilePath(level)
+        let logFilePath = self.getCurrentLogFilePath(level)
         if FileManager.default.fileExists(atPath: logFilePath) {
             let writeHandler = FileHandle(forWritingAtPath: logFilePath)
             writeHandler?.seekToEndOfFile()
@@ -320,7 +168,7 @@ public class XTILoger {
             break
         }
         let dateComponents = Calendar.current.dateComponents(Set<Calendar.Component>.init(arrayLiteral: .year, .month, .day, .weekOfYear), from: Date())
-        let fileFormatters = fileFormatter.components(separatedBy: "-")
+        let fileFormatters = self.fileFormatter.components(separatedBy: "-")
         fileFormatters.forEach { string in
             switch string {
             case "D":
@@ -337,5 +185,161 @@ public class XTILoger {
         }
         fileNameString += ".log"
         return fileNameString
+    }
+}
+
+extension XTILoger {
+    fileprivate func loger(format: String, _ args: [Any?]) -> String {
+        guard let ranges = try? NSRegularExpression(pattern: "%*%", options: []) else {
+            return ""
+        }
+
+        let matches = ranges.matches(in: format, options: [], range: NSRange(format.startIndex..., in: format))
+
+        var value = ""
+        var index = 0
+        if args.isEmpty {
+            return format
+        }
+
+        for i in 0 ..< matches.count {
+            let len = (i < matches.count - 1 ? matches[i + 1].range.location : format.count) - matches[i].range.location
+            let range = Range(NSMakeRange(matches[i].range.location, len), in: format)
+            if let tempRange = range {
+                var tempFormat = "\(format[tempRange])"
+                if !tempFormat.hasPrefix("% ") && index < args.count {
+                    let arg = args[index]
+                    index = index + 1
+                    if arg != nil, let cVarArg = arg as? CVarArg {
+                        tempFormat = String(format: tempFormat, cVarArg)
+                    } else {
+                        tempFormat = String(format: tempFormat, arg != nil ? "\(arg!)" : "\(arg)")
+                    }
+                }
+                value = value + tempFormat
+            }
+        }
+        return value
+    }
+
+    /// 打印日志
+    /// - Parameters:
+    ///   - level: 日志等级
+    ///   - format: 要打印的数据的结构
+    ///   - args: 要打印的数据数组
+    /// - Returns: 打印的内容
+    fileprivate func log(_ level: XTILogerLevel,
+                         function: String,
+                         file: String,
+                         line: Int,
+                         value: [Any]) -> String {
+        if self.logLevel > level {
+            return ""
+        }
+
+        let dateTime = self.isShowLongTime ? "\(self.dateFormatter.string(from: Date()))" : "\(self.dateShortFormatter.string(from: Date()))"
+        var levelString = ""
+        switch level {
+        case .info:
+            levelString = "[INFO]"
+        case .debug:
+            levelString = "[DEBUG]"
+        case .warning:
+            levelString = "[WARNING]"
+        case .error:
+            levelString = "[ERROR]"
+        default:
+            break
+        }
+        levelString = self.isShowLevel ? levelString : ""
+
+        var fileString = ""
+        if self.isShowFileName {
+            fileString += "[" + (file as NSString).lastPathComponent
+            if self.isShowLineNumber {
+                fileString += ":\(line)"
+            }
+            fileString += "]"
+        }
+        if fileString.isEmpty && self.isShowLineNumber {
+            fileString = "line:\(line)"
+        }
+        let functionString = self.isShowFunctionName ? function : ""
+
+        let threadId = String(unsafeBitCast(Thread.current, to: Int.self), radix: 16, uppercase: false)
+        let isMain = self.isShowThread ? Thread.current.isMainThread ? "[Main]" : "[Global]<0x\(threadId)>" : ""
+        let infoString = "\(dateTime) \(levelString) \(fileString) \(isMain) \(functionString)".trimmingCharacters(in: CharacterSet(charactersIn: " "))
+        var logString = ""
+        value.forEach { tempValue in
+            var tempLog = ""
+            print(tempValue, terminator: "", to: &tempLog)
+            logString += tempLog
+        }
+        logString = infoString + (infoString.isEmpty ? "" : " => ") + logString
+        self.printToFile(level, log: logString)
+        self.xt_print(logString)
+        return logString + "\n"
+    }
+}
+
+extension XTILoger {
+    @discardableResult public func info(function: String = #function,
+                                        file: String = #file,
+                                        line: Int = #line,
+                                        _ value: Any...) -> String {
+        return self.log(.info, function: function, file: file, line: line, value: value)
+    }
+
+    @discardableResult public func debug(function: String = #function,
+                                         file: String = #file,
+                                         line: Int = #line,
+                                         _ value: Any...) -> String {
+        return self.log(.debug, function: function, file: file, line: line, value: value)
+    }
+
+    @discardableResult public func warning(function: String = #function,
+                                           file: String = #file,
+                                           line: Int = #line,
+                                           _ value: Any...) -> String {
+        return self.log(.warning, function: function, file: file, line: line, value: value)
+    }
+
+    @discardableResult public func error(function: String = #function,
+                                         file: String = #file,
+                                         line: Int = #line,
+                                         _ value: Any...) -> String {
+        return self.log(.error, function: function, file: file, line: line, value: value)
+    }
+}
+
+fileprivate let xtiloger = XTILoger()
+extension XTILoger {
+    static var `default`: XTILoger = xtiloger
+    @discardableResult public static func info(function: String = #function,
+                                               file: String = #file,
+                                               line: Int = #line,
+                                               _ value: Any...) -> String {
+        return xtiloger.log(.info, function: function, file: file, line: line, value: value)
+    }
+
+    @discardableResult public static func debug(function: String = #function,
+                                                file: String = #file,
+                                                line: Int = #line,
+                                                _ value: Any...) -> String {
+        return xtiloger.log(.debug, function: function, file: file, line: line, value: value)
+    }
+
+    @discardableResult public static func warning(function: String = #function,
+                                                  file: String = #file,
+                                                  line: Int = #line,
+                                                  _ value: Any...) -> String {
+        return xtiloger.log(.warning, function: function, file: file, line: line, value: value)
+    }
+
+    @discardableResult public static func error(function: String = #function,
+                                                file: String = #file,
+                                                line: Int = #line,
+                                                _ value: Any...) -> String {
+        return xtiloger.log(.error, function: function, file: file, line: line, value: value)
     }
 }

@@ -4,7 +4,7 @@ Pod::Spec.new do |s|
   s.summary          = 'XTILoger'
 
   s.description      = <<-DESC
-  TODO:
+  TODO: 打印日志的组件
                        DESC
 
   s.homepage         = 'https://github.com/xt-input/XTILoger'
