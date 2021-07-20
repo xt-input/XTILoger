@@ -40,6 +40,8 @@ extension XTILogerLevel: Comparable {
 public class XTILoger {
     fileprivate let dateFormatter = DateFormatter()
     fileprivate let dateShortFormatter = DateFormatter()
+
+    public var logerName: String
     /// 文件夹
     fileprivate let logDirectory: String
 
@@ -77,14 +79,15 @@ public class XTILoger {
         #endif
     }
 
-    public required init(_ logDirectory: String = "") {
+    public required init(_ logDirectory: String = "", logerName: String = "default") {
         self.dateFormatter.locale = Locale(identifier: "en_US_POSIX")
         self.dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
         self.dateShortFormatter.locale = Locale(identifier: "en_US_POSIX")
         self.dateShortFormatter.dateFormat = "HH:mm:ss.SSS"
         self.debugLogLevel = XTILogerLevel.all
         self.releaseLogLevel = XTILogerLevel.warning
-        self.logDirectory = logDirectory.appending("/").replacingOccurrences(of: "//", with: "/")
+        self.logDirectory = logDirectory.appending("/\(logerName)/").replacingOccurrences(of: "//", with: "/")
+        self.logerName = logerName
     }
 }
 
@@ -238,16 +241,16 @@ extension XTILoger {
         }
 
         let dateTime = self.isShowLongTime ? "\(self.dateFormatter.string(from: Date()))" : "\(self.dateShortFormatter.string(from: Date()))"
-        var levelString = ""
+        var levelString = "[\(self.logerName)] "
         switch level {
         case .info:
-            levelString = "[INFO]"
+            levelString += "[INFO]"
         case .debug:
-            levelString = "[DEBUG]"
+            levelString += "[DEBUG]"
         case .warning:
-            levelString = "[WARNING]"
+            levelString += "[WARNING]"
         case .error:
-            levelString = "[ERROR]"
+            levelString += "[ERROR]"
         default:
             break
         }
