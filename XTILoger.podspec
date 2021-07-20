@@ -7,10 +7,10 @@ Pod::Spec.new do |s|
   TODO: 打印日志的组件
                        DESC
 
-  s.homepage         = 'https://github.com/xt-input/XTILoger'
+  s.homepage         = 'https://github.com/xtinput/XTILoger'
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
   s.author           = { 'xt-input' => 'input@tcoding.cn' }
-  s.source           = { :git => 'https://github.com/xt-input/XTILoger.git', :tag => s.version.to_s }
+  s.source           = { :git => 'https://github.com/xtinput/XTILoger.git', :tag => s.version.to_s }
 
   s.ios.deployment_target = '10.0'
 
